@@ -207,9 +207,15 @@ namespace Managers
 		{
 			try
 			{
-				if (y < 0)
+				if (y < 0 || y > height)
 				{
-					y = 0;
+					throw new Exception();
+				}
+
+				if (x < 0 || x >= width)
+				{
+					// We have a peace that is going to land outside of the grid.
+					throw new Exception();
 				}
 
 				return gridPosArray[GetIndex(x, y)].taken == 1; //gridPosArray[x][y].taken == 1;
@@ -364,7 +370,6 @@ namespace Managers
 		private void TryRotate()
 		{
 			RotateInstruction[] rotationsInstuctions = activeRotatable.CheckIfValidRotations();
-			bool canMove = true;
 			for (int i = 0; i < rotationsInstuctions.Length; i++)
 			{
 				if (!IsTaken(currentX + rotationsInstuctions[i].xPos, currentY + rotationsInstuctions[i].yPos))
@@ -372,20 +377,16 @@ namespace Managers
 					continue;
 				}
 
-				canMove = false;
-				break;
+				// We can't rotate
+				return;
 			}
 
-			if (canMove)
-			{
-				activeRotatable.RotatePeaces();
-			}
+			activeRotatable.RotatePeaces();
 		}
 
 		private void TryMoveLeft()
 		{
 			(int, int)[] currentPeacePositions = activeOccupiedSpace.GetCurrentPeacePositions(); // Item1 = x, item2 = y
-			bool canMove = true;
 
 			for (int k = 0; k < currentPeacePositions.Length; k++)
 			{
@@ -393,8 +394,7 @@ namespace Managers
 
 				if (targetX <= -1)
 				{
-					canMove = false;
-					break;
+					return;
 				}
 
 				if (!IsTaken(targetX, currentY + currentPeacePositions[k].Item2))
@@ -402,22 +402,17 @@ namespace Managers
 					continue;
 				}
 
-				canMove = false;
-				break;
+				return;
 			}
 
-			if (canMove)
-			{
-				currentX--;
-				activePrefab.transform.position = GetNewPosFromCurrentXAndY(currentX, currentY);
-			}
+			currentX--;
+			activePrefab.transform.position = GetNewPosFromCurrentXAndY(currentX, currentY);
 		}
 
 		private void TryMoveRight()
 		{
 			(int, int)[] currentPeacePositions = activeOccupiedSpace.GetCurrentPeacePositions(); // Item1 = x, item2 = y
 
-			bool canMove = true;
 
 			for (int k = 0; k < currentPeacePositions.Length; k++)
 			{
@@ -425,8 +420,7 @@ namespace Managers
 
 				if (targetX > width - 1)
 				{
-					canMove = false;
-					break;
+					return;
 				}
 
 				if (!IsTaken(targetX, currentY + currentPeacePositions[k].Item2))
@@ -434,15 +428,11 @@ namespace Managers
 					continue;
 				}
 
-				canMove = false;
-				break;
+				return;
 			}
 
-			if (canMove)
-			{
-				currentX++;
-				activePrefab.transform.position = GetNewPosFromCurrentXAndY(currentX, currentY);
-			}
+			currentX++;
+			activePrefab.transform.position = GetNewPosFromCurrentXAndY(currentX, currentY);
 		}
 	}
 }
