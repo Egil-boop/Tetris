@@ -1,7 +1,7 @@
 # Tetris
 
-#Controlls
- Move with A & D
+# Controlls
+ Move with A & D\n
  Rotate with space
  Speed up with Left shift
  Press button in game with M0
