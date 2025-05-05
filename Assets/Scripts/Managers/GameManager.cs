@@ -1,5 +1,8 @@
 using System;
 using System.Collections;
+using Unity.Burst;
+using Unity.Collections;
+using Unity.Jobs;
 using UnityEngine;
 using Utility;
 using Random = UnityEngine.Random;
@@ -29,7 +32,7 @@ namespace Managers
 		private GameObject[] spawnedPrefabs;
 		private IRotatable[] rotatables;
 		private IOccupiedSpace[] occupiedSpaces;
-		private GridPos[] gridPosArray;
+		private NativeArray<GridPos> gridPosArray;
 
 		private GameObject[] replacements;
 
@@ -65,7 +68,7 @@ namespace Managers
 
 			//Grid flat setup
 			grid = new Grid();
-			gridPosArray = grid.CreateGridFlat();
+			gridPosArray = new NativeArray<GridPos>(grid.CreateGridFlat(), Allocator.Persistent);
 			gridSpacing = grid.GetGridMoveAmount();
 
 			replacements = new GameObject[gridPosArray.Length];
@@ -86,11 +89,19 @@ namespace Managers
 					instance.GetComponent<ColorSetter>().SetColor(y + x);
 					replacements[GetIndex(x, y)] = instance;
 					instance.SetActive(false);
-					gridPosArray[GetIndex(x, y)].taken = 0;
+
+					GridPos pos = gridPosArray[GetIndex(x, y)];
+					pos.taken = 0;
+					gridPosArray[GetIndex(x, y)] = pos;
 				}
 			}
 
 			SpawnNewPeace();
+		}
+
+		private void OnDestroy()
+		{
+			gridPosArray.Dispose();
 		}
 
 		private void Update()
@@ -236,11 +247,19 @@ namespace Managers
 
 			int index = GetIndex(x, y);
 
-			gridPosArray[index].taken = value;
+			GridPos gridPos = gridPosArray[GetIndex(x, y)];
+			gridPos.taken = value;
+			gridPosArray[index] = gridPos;
 		}
+
+		private NativeArray<int> result;
+		private JobHandle jobHandle;
+
+		private bool jobRunning = false;
 
 		private void ClearFullRows()
 		{
+			/*
 			for (int y = 0; y < height; y++)
 			{
 				bool isRowFull = true;
@@ -265,13 +284,83 @@ namespace Managers
 				ClearRow(y);
 				scoreManager.onScoreGained?.Invoke();
 			}
+
+			*/
+			if (jobRunning) return;
+
+			result = new NativeArray<int>(height, Allocator.TempJob);
+
+			LookForRowsToClearJob job = new LookForRowsToClearJob { gridPosArray = gridPosArray, width = width, height = height, result = result };
+			jobHandle = job.Schedule();
+			jobRunning = true;
+		}
+
+		private void LateUpdate()
+		{
+			if (!jobRunning) return;
+
+			jobHandle.Complete();
+
+
+			for (int y = 0; y < result.Length; y++)
+			{
+				if (result[y] == 0)
+				{
+					continue;
+				}
+
+				ClearRow(y);
+				scoreManager.onScoreGained?.Invoke();
+			}
+
+			result.Dispose();
+			jobRunning = false;
+		}
+
+		[BurstCompile]
+		private struct LookForRowsToClearJob : IJob
+		{
+			// y * width + x;
+			public NativeArray<int> result;
+			public NativeArray<GridPos> gridPosArray;
+			public int width;
+			public int height;
+
+			public void Execute()
+			{
+				for (int y = 0; y < height; y++)
+				{
+					int isRowFull = 1;
+					for (int x = 0; x < width; x++)
+					{
+						int index = y * width + x;
+						if (gridPosArray[index].taken != 0)
+						{
+							continue;
+						}
+
+						isRowFull = 0;
+						break;
+					}
+
+					if (isRowFull == 0)
+					{
+						continue;
+					}
+
+					// Add y row index
+					result[y] = 1;
+				}
+			}
 		}
 
 		private void ClearRow(int rowIndex)
 		{
 			for (int x = 0; x < width; x++)
 			{
-				gridPosArray[GetIndex(x, rowIndex)].taken = 0;
+				var gridPos = gridPosArray[GetIndex(x, rowIndex)];
+				gridPos.taken = 0;
+				gridPosArray[GetIndex(x, rowIndex)] = gridPos;
 				replacements[GetIndex(x, rowIndex)].SetActive(false);
 			}
 
@@ -282,8 +371,13 @@ namespace Managers
 					int currentIndex = GetIndex(x, y);
 					int aboveIndex = GetIndex(x, y + 1);
 
-					gridPosArray[currentIndex].taken = gridPosArray[aboveIndex].taken;
-					gridPosArray[aboveIndex].taken = 0;
+					var gridPosCurrent = gridPosArray[currentIndex];
+					gridPosCurrent.taken = gridPosArray[aboveIndex].taken;
+					gridPosArray[currentIndex] = gridPosCurrent;
+
+					var gridPosAbove = gridPosArray[aboveIndex];
+					gridPosAbove.taken = 0;
+					gridPosArray[aboveIndex] = gridPosAbove;
 
 					replacements[GetIndex(x, y)].SetActive(gridPosArray[GetIndex(x, y)].taken == 1);
 				}
@@ -292,8 +386,12 @@ namespace Managers
 			for (int x = 0; x < width; x++)
 			{
 				int topIndex = GetIndex(x, height - 1);
-				gridPosArray[topIndex].taken = 0;
+				var topGridPos = gridPosArray[topIndex];
+				topGridPos.taken = 0;
+				gridPosArray[topIndex] = topGridPos;
 			}
+
+			result[rowIndex] = 0;
 		}
 
 #if UNITY_EDITOR
@@ -325,7 +423,10 @@ namespace Managers
 			{
 				for (int x = 0; x < width; x++)
 				{
-					gridPosArray[GetIndex(x, y)].taken = 0;
+					var gridPos = gridPosArray[GetIndex(x, y)];
+					gridPos.taken = 0;
+					gridPosArray[GetIndex(x, y)] = gridPos;
+
 					replacements[GetIndex(x, y)].SetActive(false);
 				}
 

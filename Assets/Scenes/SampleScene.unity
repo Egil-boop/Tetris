@@ -286,10 +286,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   prefabs:
-  - {fileID: 5899219995552754858, guid: 9e29e98cda40e1b45aa988bd04e9224e, type: 3}
   - {fileID: 6116750184804099878, guid: 3a2942c2c53b3c1429dfebee9ebccaa1, type: 3}
   - {fileID: 6207813473697291897, guid: 106db81f8ded752429ff6a8ce8fabfde, type: 3}
   - {fileID: 834707851241298325, guid: bb4313dea90cf314589dab597d3d4208, type: 3}
+  - {fileID: 5899219995552754858, guid: 9e29e98cda40e1b45aa988bd04e9224e, type: 3}
   replacementPrefab: {fileID: 9045418785795826896, guid: 0162ed1717e0ccb429585064631953c9, type: 3}
   speed: 1
   controller: {fileID: 144738207}
