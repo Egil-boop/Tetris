@@ -259,33 +259,6 @@ namespace Managers
 
 		private void ClearFullRows()
 		{
-			/*
-			for (int y = 0; y < height; y++)
-			{
-				bool isRowFull = true;
-
-				for (int x = 0; x < width; x++)
-				{
-					int index = GetIndex(x, y);
-					if (gridPosArray[index].taken != 0)
-					{
-						continue;
-					}
-
-					isRowFull = false;
-					break;
-				}
-
-				if (!isRowFull)
-				{
-					continue;
-				}
-
-				ClearRow(y);
-				scoreManager.onScoreGained?.Invoke();
-			}
-
-			*/
 			if (jobRunning) return;
 
 			result = new NativeArray<int>(height, Allocator.TempJob);
