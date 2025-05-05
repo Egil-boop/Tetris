@@ -293,7 +293,6 @@ namespace Managers
 		[BurstCompile]
 		private struct LookForRowsToClearJob : IJob
 		{
-			// y * width + x;
 			public NativeArray<int> result;
 			public NativeArray<GridPos> gridPosArray;
 			public int width;
@@ -321,7 +320,6 @@ namespace Managers
 						continue;
 					}
 
-					// Add y row index
 					result[y] = 1;
 				}
 			}
